@@ -1,19 +1,26 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "AWS tag watch",
-  "Resources": {
-    "AlertTopic": {
-      "Type" : "AWS::SNS::Topic",
-      "Properties": {
-        "DisplayName": "aws-tag-watch alerts",
-        "Subscription": [{
-          "Endpoint": "michael@widdix.de",
-          "Protocol": "email"
-        }],
-        "TopicName": {"Fn::Join": ["alert-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
-      }
+  "Parameters": {
+    "LambdaS3Bucket": {
+      "Type": "String",
+      "Description": "Bucket where the Lambda code is located"
     },
-
+    "LambdaS3Key": {
+      "Type": "String",
+      "Description": "Path to Lambda code",
+      "Default": "aws-tag-watch.zip"
+    },
+    "LambdaS3ObjectVersion": {
+      "Type": "String",
+      "Description": "leave blank if you don't have versioning enabled on the bucket"
+    },
+    "AlertTopicArn": {
+      "Type": "String",
+      "Description": "Must match with the alertTopicArn in config.json"
+    }
+  },
+  "Resources": {
     "TrailBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties": {
@@ -121,7 +128,6 @@
       },
       "DependsOn": ["TrailBucketPolicy", "TrailTopicPolicy"]
     },
-
     "LambdaRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -189,21 +195,20 @@
                 "SNS:Publish"
               ],
               "Resource": [
-                {"Ref": "AlertTopic"}
+                {"Ref": "AlertTopicArn"}
               ]
             }]
           }
-          
-          }]
+        }]
       }
     },
     "Lambda": {
       "Type" : "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "S3Bucket": "aws-tag-watch",
-          "S3Key": "aws-tag-watch.zip",
-          "S3ObjectVersion": "Tfonhx61QM23hJJvDGZMv7Ltm.vSaK5l"
+          "S3Bucket": {"Ref": "LambdaS3Bucket"},
+          "S3Key": {"Ref": "LambdaS3Key"},
+          "S3ObjectVersion": {"Ref": "LambdaS3ObjectVersion"}
         },
         "Description": "Monitor CloudTrail for Resource tagging",
         "Handler": "index.handler",
@@ -212,6 +217,16 @@
         "Runtime": "nodejs",
         "Timeout": 30
       }
+    }
+  },
+  "Outputs": {
+    "LambdaFunctionName": {
+      "Description": "Lambda function name",
+      "Value": {"Ref": "Lambda"}
+    },
+    "TrailTopicArn": {
+      "Description": "Topic Arn",
+      "Value": {"Ref": "TrailTopic"}
     }
   }
 }

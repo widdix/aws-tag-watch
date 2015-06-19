@@ -1,5 +1,4 @@
-// constants
-var REGION = "eu-west-1";
+var config = require("./config.json");
 
 // Node.js modules
 var zlib = require("zlib");
@@ -16,12 +15,12 @@ var handlerRegistry = {};
 function alert(message, cb) {
   console.log("alert()", message);
   var sns = new AWS.SNS({
-    region: REGION
+    region: config.region
   });
   sns.publish({
     Message: message,
     Subject: "aws-tag-watch",
-    TopicArn: "arn:aws:sns:eu-west-1:878533158213:878533158213alert-eu-west-1"
+    TopicArn: config.alertTopicArn
   }, cb);
 }
 
@@ -51,7 +50,7 @@ function inspectTrail(trail, cb) {
 function downloadAndParseTrail(s3Bucket, s3ObjectKey, cb) {
   console.log("downloadAndParseTrail()", s3ObjectKey);
   var s3 = new AWS.S3({
-    region: REGION
+    region: config.region
   });
   s3.getObject({
     Bucket: s3Bucket,
@@ -71,7 +70,6 @@ function downloadAndParseTrail(s3Bucket, s3ObjectKey, cb) {
   });
 }
 
-// event := {"s3Bucket":"878533158213trail-eu-west-1","s3ObjectKey":["AWSLogs/878533158213/CloudTrail/eu-west-1/2015/06/18/878533158213_CloudTrail_eu-west-1_20150618T2015Z_H1x5ghOoaLGopLJ7.json.gz"]}
 exports.handler = function(event, context) {
   console.log("handler()", event);
   async.eachLimit(event.Records, 5, function(record, cb) {
@@ -98,7 +96,7 @@ exports.handler = function(event, context) {
 registerHandler("ec2.amazonaws.com", "RunInstances", function(record, cb) {
   console.log("ec2.amazonaws.com.RunInstances()");
   var ec2 = new AWS.EC2({
-    region: REGION
+    region: config.region
   });
   async.eachLimit(record.responseElements.instancesSet.items, 5, function(item, cb) {
     ec2.describeInstances({
