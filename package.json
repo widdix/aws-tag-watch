@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "async": "1.2.1",
+    "underscore": "1.8.3",
+    "aws-sdk": "2.1.35"
+  },
+  "bundledDependencies": ["async", "underscore", "aws-sdk"]
+}

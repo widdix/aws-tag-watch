@@ -1,0 +1,217 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS tag watch",
+  "Resources": {
+    "AlertTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "aws-tag-watch alerts",
+        "Subscription": [{
+          "Endpoint": "michael@widdix.de",
+          "Protocol": "email"
+        }],
+        "TopicName": {"Fn::Join": ["alert-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+      }
+    },
+
+    "TrailBucket": {
+      "Type" : "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {"Fn::Join": ["trail-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+      }
+    },
+    "TrailBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {"Ref": "TrailBucket"},
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "AWSCloudTrailAclCheck20131101",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "arn:aws:iam::903692715234:root",
+                  "arn:aws:iam::859597730677:root",
+                  "arn:aws:iam::814480443879:root",
+                  "arn:aws:iam::216624486486:root",
+                  "arn:aws:iam::086441151436:root",
+                  "arn:aws:iam::388731089494:root",
+                  "arn:aws:iam::284668455005:root",
+                  "arn:aws:iam::113285607260:root",
+                  "arn:aws:iam::035351147821:root"
+                ]
+              },
+              "Action": "s3:GetBucketAcl",
+              "Resource": {"Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "TrailBucket"}]]}
+            },
+            {
+              "Sid": "AWSCloudTrailWrite20131101",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  "arn:aws:iam::903692715234:root",
+                  "arn:aws:iam::859597730677:root",
+                  "arn:aws:iam::814480443879:root",
+                  "arn:aws:iam::216624486486:root",
+                  "arn:aws:iam::086441151436:root",
+                  "arn:aws:iam::388731089494:root",
+                  "arn:aws:iam::284668455005:root",
+                  "arn:aws:iam::113285607260:root",
+                  "arn:aws:iam::035351147821:root"
+                ]
+              },
+              "Action": "s3:PutObject",
+              "Resource": {"Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "TrailBucket"}, "/*"]]},
+              "Condition": { 
+                "StringEquals": { 
+                  "s3:x-amz-acl": "bucket-owner-full-control" 
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "TrailTopic": {
+      "Type" : "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "CloudTrail events",
+        "Subscription": [{
+          "Endpoint": {"Fn::GetAtt": ["Lambda", "Arn"]},
+          "Protocol": "lambda"
+        }],
+        "TopicName": {"Fn::Join": ["trail-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+      }
+    },
+    "TrailTopicPolicy": {
+      "Type" : "AWS::SNS::TopicPolicy",
+      "Properties": {
+        "Topics": [{"Ref": "TrailTopic"}],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Sid": "AWSCloudTrailSNSPolicy20140219",
+            "Effect": "Allow",
+            "Principal": {"AWS": [
+              "arn:aws:iam::903692715234:root",
+              "arn:aws:iam::859597730677:root",
+              "arn:aws:iam::814480443879:root",
+              "arn:aws:iam::216624486486:root",
+              "arn:aws:iam::086441151436:root",
+              "arn:aws:iam::388731089494:root",
+              "arn:aws:iam::284668455005:root",
+              "arn:aws:iam::113285607260:root",
+              "arn:aws:iam::035351147821:root"
+            ]},
+            "Action": "SNS:Publish",
+            "Resource": {"Ref": "TrailTopic"}
+          }]
+        }
+      }
+    },
+    "Trail": {
+      "Type": "AWS::CloudTrail::Trail",
+      "Properties": {
+        "IncludeGlobalServiceEvents": true,
+        "IsLogging": true,
+        "S3BucketName": {"Ref": "TrailBucket"},
+        "SnsTopicName": {"Fn::GetAtt": ["TrailTopic", "TopicName"]}
+      },
+      "DependsOn": ["TrailBucketPolicy", "TrailTopicPolicy"]
+    },
+
+    "LambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "logs",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Action": [
+                 "logs:*"
+              ],
+              "Resource": "arn:aws:logs:*:*:*"
+            }]
+          }
+        }, {
+          "PolicyName": "s3",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Sid": "Stmt1413807304000",
+              "Effect": "Allow",
+              "Action": [
+                "s3:GetObject"
+              ],
+              "Resource": [
+                {"Fn::Join": ["", ["arn:aws:s3:::", {"Ref": "TrailBucket"}, "/*"]]}
+              ]
+            }]
+          }
+        }, {
+          "PolicyName": "ec2",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Sid": "Stmt1424083772000",
+              "Effect": "Allow",
+              "Action": [
+                "ec2:DescribeInstances"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }]
+          }
+        }, {
+          "PolicyName": "sns",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Sid": "Stmt1424083772000",
+              "Effect": "Allow",
+              "Action": [
+                "SNS:Publish"
+              ],
+              "Resource": [
+                {"Ref": "AlertTopic"}
+              ]
+            }]
+          }
+          
+          }]
+      }
+    },
+    "Lambda": {
+      "Type" : "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "aws-tag-watch",
+          "S3Key": "aws-tag-watch.zip",
+          "S3ObjectVersion": "Tfonhx61QM23hJJvDGZMv7Ltm.vSaK5l"
+        },
+        "Description": "Monitor CloudTrail for Resource tagging",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
+        "Runtime": "nodejs",
+        "Timeout": 30
+      }
+    }
+  }
+}
