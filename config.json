@@ -1,4 +1,4 @@
 {
   "region": "eu-west-1",
-  "alertTopicArn": "arn:aws:sns:eu-west-1:878533158213:878533158213alert-eu-west-1"
+  "alertTopicArn": "arn:aws:sns:eu-west-1:878533158213:tag-watch"
 }

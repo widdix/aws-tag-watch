@@ -10,6 +10,6 @@
 
   #--function-name please fill in LambdaFunctionName output from CloudFormation stack
   #--source-arn please fill in TrailTopicArn output from CloudFormation stack
-  aws --profile private lambda add-permission --function-name "..." --statement-id "s1" --action "lambda:invokeFunction" --principal "sns.amazonaws.com" --source-arn "..."
+  aws lambda add-permission --function-name "..." --statement-id "s1" --action "lambda:invokeFunction" --principal "sns.amazonaws.com" --source-arn "..."
 
 6. subscribe to the topic you configured in `config.json`

@@ -24,7 +24,7 @@
     "TrailBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties": {
-        "BucketName": {"Fn::Join": ["tag-watch-trail-", [{"Ref": "AWS::AccountId"}, "-", {"Ref": "AWS::Region"}]]}
+        "BucketName": {"Fn::Join": ["-", ["tag-watch-trail", {"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
       }
     },
     "TrailBucketPolicy": {
@@ -89,7 +89,7 @@
           "Endpoint": {"Fn::GetAtt": ["Lambda", "Arn"]},
           "Protocol": "lambda"
         }],
-        "TopicName": {"Fn::Join": ["tag-watch-trail-", [{"Ref": "AWS::AccountId"}, "-", {"Ref": "AWS::Region"}]]}
+        "TopicName": {"Fn::Join": ["-", ["tag-watch-trail", {"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
       }
     },
     "TrailTopicPolicy": {
