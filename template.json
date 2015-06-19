@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "AWS tag watch",
+  "Description": "AWS tag-watch",
   "Parameters": {
     "LambdaS3Bucket": {
       "Type": "String",
@@ -13,7 +13,7 @@
     },
     "LambdaS3ObjectVersion": {
       "Type": "String",
-      "Description": "leave blank if you don't have versioning enabled on the bucket"
+      "Description": "Leave blank if you don't have versioning enabled on LambdaS3Bucket"
     },
     "AlertTopicArn": {
       "Type": "String",
