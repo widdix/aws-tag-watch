@@ -17,14 +17,14 @@
     },
     "AlertTopicArn": {
       "Type": "String",
-      "Description": "Must match with the alertTopicArn in config.json"
+      "Description": "Must match with the alertTopicArn property in config.json"
     }
   },
   "Resources": {
     "TrailBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties": {
-        "BucketName": {"Fn::Join": ["trail-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+        "BucketName": {"Fn::Join": ["tag-watch-trail-", [{"Ref": "AWS::AccountId"}, "-", {"Ref": "AWS::Region"}]]}
       }
     },
     "TrailBucketPolicy": {
@@ -89,7 +89,7 @@
           "Endpoint": {"Fn::GetAtt": ["Lambda", "Arn"]},
           "Protocol": "lambda"
         }],
-        "TopicName": {"Fn::Join": ["trail-", [{"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+        "TopicName": {"Fn::Join": ["tag-watch-trail-", [{"Ref": "AWS::AccountId"}, "-", {"Ref": "AWS::Region"}]]}
       }
     },
     "TrailTopicPolicy": {
@@ -192,7 +192,7 @@
               "Sid": "Stmt1424083772000",
               "Effect": "Allow",
               "Action": [
-                "SNS:Publish"
+                "sns:Publish"
               ],
               "Resource": [
                 {"Ref": "AlertTopicArn"}
@@ -210,7 +210,7 @@
           "S3Key": {"Ref": "LambdaS3Key"},
           "S3ObjectVersion": {"Ref": "LambdaS3ObjectVersion"}
         },
-        "Description": "Monitor CloudTrail for Resource tagging",
+        "Description": "AWS log-watch monitors CloudTrail",
         "Handler": "index.handler",
         "MemorySize": 128,
         "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
