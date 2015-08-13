@@ -1,6 +1,8 @@
 # AWS tag watch
 
-This lambda function checks if your EC2 instances all have a specific tag (defined in `config.json`) in near real-time. CloudTrail is used to report EC2 `CreateTags`, `DeleteTags` and `RunInstances` events. The lambda function can be deployed with CloudFormation.
+![AWS tag watch](./AWS tag watch.png?raw=true "AWS tag watch")
+
+Unfortunately you can not enforce a tag schema on AWS. But tags are very important e.g. for cost allocation. This lambda function checks if your EC2 instances all have a specific tag (defined in `config.json`) in near real-time. CloudTrail is used to report EC2 `CreateTags`, `DeleteTags` and `RunInstances` events. The lambda function can be deployed with CloudFormation.
 
 ## Install
 
