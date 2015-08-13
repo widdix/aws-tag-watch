@@ -18,4 +18,5 @@ This lambda function checks if your EC2 instances all have a specific tag (defin
 # --source-arn please fill in TrailTopicArn output from CloudFormation stack
 $ aws lambda add-permission --function-name "..." --statement-id "s1" --action "lambda:invokeFunction" --principal "sns.amazonaws.com" --source-arn "..."
 ```
-10. subscribe to the topic you configured in `config.json`
+
+done.
