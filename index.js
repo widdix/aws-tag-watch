@@ -1,3 +1,6 @@
+var INSTANCES_BATCH_SIZE = 10;
+var BATCHES_IN_PARALLEL = 5;
+
 var config = require("./config.json");
 
 // Node.js modules
@@ -5,18 +8,21 @@ var zlib = require("zlib");
 
 // thirdparty modules
 var async = require("async");
-var underscore = require("underscore");
+var lodash = require("lodash");
 var AWS = require("aws-sdk");
 
 // global state
 var handlerRegistry = {};
+var ec2 = new AWS.EC2({
+  region: config.region
+});
+var sns = new AWS.SNS({
+  region: config.region
+});
 
 // implementation
 function alert(message, cb) {
   console.log("alert()", message);
-  var sns = new AWS.SNS({
-    region: config.region
-  });
   sns.publish({
     Message: message,
     Subject: "aws-tag-watch",
@@ -41,7 +47,6 @@ function inspectTrail(trail, cb) {
     if (handlerRegistry[record.eventSource] !== undefined && handlerRegistry[record.eventSource][record.eventName] !== undefined) {
       handlerRegistry[record.eventSource][record.eventName](record, cb);
     } else {
-      // debug console.log("unhandled event", [record.eventSource, record.eventName]);
       cb();
     }
   }, cb);
@@ -74,7 +79,6 @@ exports.handler = function(event, context) {
   console.log("handler()", event);
   async.eachLimit(event.Records, 5, function(record, cb) {
     var message = JSON.parse(record.Sns.Message);
-    // debug console.log("handler() message", message);
     async.eachLimit(message.s3ObjectKey, 5, function(s3ObjectKey, cb) {
       downloadAndParseTrail(message.s3Bucket, s3ObjectKey, function(err, trail) {
         if (err) {
@@ -93,41 +97,53 @@ exports.handler = function(event, context) {
   });
 };
 
-registerHandler("ec2.amazonaws.com", "RunInstances", function(record, cb) {
-  console.log("ec2.amazonaws.com.RunInstances()");
-  var ec2 = new AWS.EC2({
-    region: config.region
-  });
-  async.eachLimit(record.responseElements.instancesSet.items, 5, function(item, cb) {
-    ec2.describeInstances({
-      InstanceIds: [item.instanceId]
-    }, function(err, data) {
+function checkForRequiredTag(instanceIds, cb) {
+  console.log("checkForRequiredTag()");
+  var uniqueInstanceIds = lodash.unique(instanceIds);
+  var chunks = lodash.chunk(uniqueInstanceIds, INSTANCES_BATCH_SIZE);
+  async.eachLimit(chunks, BATCHES_IN_PARALLEL, function(chunk, cb) {
+    var params = {
+      InstanceIds: chunk
+    };
+    ec2.describeInstances(params, function(err, data) {
       if (err) {
         cb(err);
       } else {
-        if (data.Reservations.length === 0) {
-          console.log("reservation not found", item.instanceId);
+        var instances = lodash.flatten(lodash.map(data.Reservations, function(reservation) {
+          return lodash.map(reservation.Instances);
+        }));
+        if (instances.length !== chunk.length) {
+          console.log("not all instances returned", chunk);
           cb();
-        } else if (data.Reservations.length === 1) {
-          if (data.Reservations[0].Instances.length === 0) {
-            console.log("instance not found", item.instanceId);
-            cb();
-          } else if (data.Reservations[0].Instances.length === 1) {
-            var tags = underscore.filter(data.Reservations[0].Instances[0].Tags, function(tag) {
-              return tag.Key === "aws:cloudformation:stack-name";
+        } else {
+          async.eachLimit(instances, 1, function(instance, cb) {
+            var tags = lodash.filter(instance.Tags, function(tag) {
+              return tag.Key === config.requiredTag;
             });
             if (tags.length === 0) {
-              alert("instance " + item.instanceId + " is not tagged with aws:cloudformation:stack-name", cb);
-            } else {
-              cb();
+              alert("instance " + instance.InstanceId + " is not tagged with " + config.requiredTag, cb);
             }
-          } else {
-            cb(new Error("multiple instances found for instance id"));
-          }
-        } else {
-          cb(new Error("multiple reservations instances found for instance id"));
+          }, cb);
         }
       }
     });
   }, cb);
-});
+}
+
+function handleCreateOrDeleteTags(record, cb) {
+  console.log("handleCreateOrDeleteTags()");
+  var resourceIds = lodash.map(record.requestParameters.resourcesSet.items, "resourceId");
+  var instanceIds = lodash.filter(resourceIds, function(resourceId) {
+    return resourceId.indexOf("i-") === 0;
+  });
+  checkForRequiredTag(instanceIds, cb);
+}
+registerHandler("ec2.amazonaws.com", "CreateTags", handleCreateOrDeleteTags);
+registerHandler("ec2.amazonaws.com", "DeleteTags", handleCreateOrDeleteTags);
+
+function handleRunInstances(record, cb) {
+  console.log("handleRunInstances()");
+  var instanceIds = lodash.map(record.responseElements.instancesSet.items, "instanceId");
+  checkForRequiredTag(instanceIds, cb);
+}
+registerHandler("ec2.amazonaws.com", "RunInstances", handleRunInstances);

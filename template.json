@@ -24,7 +24,14 @@
     "TrailBucket": {
       "Type" : "AWS::S3::Bucket",
       "Properties": {
-        "BucketName": {"Fn::Join": ["-", ["tag-watch-trail", {"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]}
+        "BucketName": {"Fn::Join": ["-", ["tag-watch-trail", {"Ref": "AWS::AccountId"}, {"Ref": "AWS::Region"}]]},
+        "LifecycleConfiguration": {
+          "Rules": [{
+            "ExpirationInDays": "1",
+            "Id": "cleanup",
+            "Status": "Enabled"
+          }]
+        }
       }
     },
     "TrailBucketPolicy": {
@@ -210,7 +217,7 @@
           "S3Key": {"Ref": "LambdaS3Key"},
           "S3ObjectVersion": {"Ref": "LambdaS3ObjectVersion"}
         },
-        "Description": "AWS log-watch monitors CloudTrail",
+        "Description": "aws-tag-watch monitors CloudTrail for EC2 tag changes",
         "Handler": "index.handler",
         "MemorySize": 128,
         "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
