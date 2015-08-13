@@ -13,9 +13,9 @@ This lambda function checks if your EC2 instances all have a specific tag (defin
 7. upload `aws-tag-watch.zip` to S3
 8. create a CloudFormation stack based on `template.json`
 9. unfortunately Lambda support in CloudFormation is not perfect so you need to do one permission thing manually
-
-  #--function-name please fill in LambdaFunctionName output from CloudFormation stack
-  #--source-arn please fill in TrailTopicArn output from CloudFormation stack
-  aws lambda add-permission --function-name "..." --statement-id "s1" --action "lambda:invokeFunction" --principal "sns.amazonaws.com" --source-arn "..."
-
+```
+# --function-name please fill in LambdaFunctionName output from CloudFormation stack
+# --source-arn please fill in TrailTopicArn output from CloudFormation stack
+$ aws lambda add-permission --function-name "..." --statement-id "s1" --action "lambda:invokeFunction" --principal "sns.amazonaws.com" --source-arn "..."
+```
 10. subscribe to the topic you configured in `config.json`
