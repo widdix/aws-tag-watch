@@ -13,7 +13,7 @@ Unfortunately you can not enforce a tag schema on AWS. But tags are very importa
 3. unzip
 4. run `npm install` inside to install Node.js dependencies
 5. edit `config.json`
-6. execute `./bundle.sh` in your console
+6. execute `./bundle.sh` in your terminal
 7. upload `aws-tag-watch.zip` to S3
 8. create a CloudFormation stack based on `template.json`
 9. unfortunately Lambda support in CloudFormation is not perfect so you need to do one permission thing manually
