@@ -224,16 +224,15 @@
         "Runtime": "nodejs",
         "Timeout": 30
       }
-    }
-  },
-  "Outputs": {
-    "LambdaFunctionName": {
-      "Description": "Lambda function name",
-      "Value": {"Ref": "Lambda"}
     },
-    "TrailTopicArn": {
-      "Description": "Topic Arn",
-      "Value": {"Ref": "TrailTopic"}
+    "LambdaPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:invokeFunction",
+        "FunctionName": {"Fn::GetAtt": ["Lambda", "Arn"]},
+        "Principal": "sns.amazonaws.com",
+        "SourceArn": {"Ref": "TrailTopic"}
+      }
     }
   }
 }
